@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-sbg_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_gate_pass}
+      POSTGRES_DB: ${DB_NAME:-sbg_signage}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-sbg_admin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+      - "8443:8443"
+    environment:
+      API_PORT: 3000
+      SOAP_PORT: 8443
+      JWT_SECRET: ${JWT_SECRET:-aot_signage_secret_2024}
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://${DB_USER:-sbg_admin}:${DB_PASSWORD:-secure_gate_pass}@postgres:5432/${DB_NAME:-sbg_signage}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:

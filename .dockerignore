@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.gitignore
+backend
+scripts
+docs
+.smoke.mjs
+CONTEXT.md
+SBG_Gate_LED_Signage_System_Architecture_v2.md
